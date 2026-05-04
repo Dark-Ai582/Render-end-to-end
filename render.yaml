@@ -1,8 +1,0 @@
-services:
-  - type: web   # 🔥 worker se change karke web
-    name: fb-bot
-    env: python
-    buildCommand: |
-      apt-get update && apt-get install -y chromium chromium-driver
-      pip install -r requirements.txt
-    startCommand: python main.py
