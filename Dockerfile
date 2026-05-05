@@ -1,17 +1,9 @@
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y \
-    firefox-esr \
-    wget \
-    unzip \
-    xvfb \
+    chromium \
+    chromium-driver \
     && rm -rf /var/lib/apt/lists/*
-
-# ✅ FIXED VERSION
-RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.34.0/geckodriver-v0.34.0-linux64.tar.gz \
-    && tar -xvzf geckodriver-v0.34.0-linux64.tar.gz \
-    && mv geckodriver /usr/local/bin/ \
-    && chmod +x /usr/local/bin/geckodriver
 
 WORKDIR /app
 COPY . .
