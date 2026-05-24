@@ -85,7 +85,7 @@ class FacebookMessenger:
         self.haters_name = ""
 
         # =================================================
-        #               DEFAULT STABLE DELAY
+        #               DEFAULT SAFE DELAY
         # =================================================
 
         self.delay = 20
@@ -185,6 +185,48 @@ class FacebookMessenger:
             return False
 
     # =====================================================
+    #               GET MESSAGE BOX
+    # =====================================================
+
+    def get_message_box(self):
+
+        selectors = [
+
+            "//div[@contenteditable='true']",
+
+            "//div[@role='textbox']",
+
+            "//p[@class='xdj266r x11i5rnm xat24cr x1mh8g0r']",
+
+            "//div[contains(@aria-label,'Message')]",
+
+            "//div[contains(@data-lexical-editor,'true')]"
+        ]
+
+        for selector in selectors:
+
+            try:
+
+                box = WebDriverWait(
+                    self.driver,
+                    8
+                ).until(
+                    EC.presence_of_element_located(
+                        (
+                            By.XPATH,
+                            selector
+                        )
+                    )
+                )
+
+                return box
+
+            except:
+                pass
+
+        return None
+
+    # =====================================================
     #                   DRIVER SETUP
     # =====================================================
 
@@ -236,9 +278,20 @@ class FacebookMessenger:
             options.add_argument("--disable-hang-monitor")
             options.add_argument("--disable-sync")
             options.add_argument("--disable-translate")
-            options.add_argument("--disable-features=site-per-process")
-            options.add_argument("--renderer-process-limit=1")
-            options.add_argument("--single-process")
+
+            # =================================================
+            #      REMOVED CRASH-CAUSING FLAGS
+            # =================================================
+            #
+            # REMOVED:
+            # --single-process
+            # --renderer-process-limit=1
+            # --disable-features=site-per-process
+            #
+            # THESE WERE CAUSING:
+            # <unknown> CRASH ERRORS
+            #
+            # =================================================
 
             options.add_argument("--window-size=1280,720")
 
@@ -357,13 +410,13 @@ class FacebookMessenger:
 
             self.wait_for_page_ready(60)
 
+            box = self.get_message_box()
+
+            if not box:
+                raise Exception("MESSAGE BOX NOT FOUND")
+
             self.wait.until(
-                EC.presence_of_element_located(
-                    (
-                        By.XPATH,
-                        "//div[@contenteditable='true']"
-                    )
-                )
+                lambda d: box.is_displayed()
             )
 
             success("CHAT FULLY LOADED")
@@ -403,16 +456,20 @@ class FacebookMessenger:
                 self.wait_for_page_ready(60)
 
                 # ============================================
-                # WAIT MESSAGE BOX
+                # GET MESSAGE BOX
                 # ============================================
 
-                box = self.wait.until(
-                    EC.presence_of_element_located(
-                        (
-                            By.XPATH,
-                            "//div[@contenteditable='true']"
-                        )
-                    )
+                box = self.get_message_box()
+
+                if not box:
+                    raise Exception("MESSAGE BOX NOT FOUND")
+
+                # ============================================
+                # WAIT UNTIL DISPLAYED
+                # ============================================
+
+                self.wait.until(
+                    lambda d: box.is_displayed()
                 )
 
                 # ============================================
@@ -579,10 +636,6 @@ class FacebookMessenger:
 
             try:
 
-                # ============================================
-                # VERIFY TAB ALIVE
-                # ============================================
-
                 self.driver.execute_script(
                     "return document.readyState"
                 )
@@ -590,6 +643,7 @@ class FacebookMessenger:
             except:
 
                 if not self.recover_driver():
+
                     time.sleep(10)
 
                     continue
@@ -610,10 +664,6 @@ class FacebookMessenger:
 
                 status = "SUCCESS" if sent else "FAILED"
 
-                # =================================================
-                #               STABLE SINGLE-LINE LOG
-                # =================================================
-
                 log(
                     f"[MSG #{count}] "
                     f"[TARGET: {self.target_uid}] "
@@ -622,10 +672,6 @@ class FacebookMessenger:
                     f"[MESSAGE: {short_msg}]"
                 )
 
-                # =================================================
-                #                   HEARTBEAT
-                # =================================================
-
                 log(
                     f"[ALIVE] BOT RUNNING | "
                     f"MSG #{count} | "
@@ -633,10 +679,6 @@ class FacebookMessenger:
                 )
 
                 log("───────────────────────────────────────────────────────────────")
-
-                # =================================================
-                #               SAFE DELAY
-                # =================================================
 
                 time.sleep(self.delay)
 
