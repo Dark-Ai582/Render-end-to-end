@@ -14,12 +14,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from selenium.common.exceptions import (
-    TimeoutException,
-    StaleElementReferenceException,
-    WebDriverException
-)
-
 # =========================================================
 #               RAILWAY REAL-TIME LOGGING FIX
 # =========================================================
@@ -83,12 +77,7 @@ class FacebookMessenger:
         self.messages = []
 
         self.haters_name = ""
-
-        # =================================================
-        #               DEFAULT SAFE DELAY
-        # =================================================
-
-        self.delay = 20
+        self.delay = 10
 
     # =====================================================
     #                   AUTO LOAD
@@ -131,11 +120,7 @@ class FacebookMessenger:
             if os.path.exists("time.txt"):
 
                 self.delay = int(
-                    open(
-                        "time.txt",
-                        "r",
-                        encoding="utf-8"
-                    ).read().strip()
+                    open("time.txt").read().strip()
                 )
 
             if (
@@ -161,70 +146,6 @@ class FacebookMessenger:
             error(f"AUTO LOAD FAILED : {e}")
 
             return False
-
-    # =====================================================
-    #               WAIT UNTIL PAGE READY
-    # =====================================================
-
-    def wait_for_page_ready(self, timeout=60):
-
-        try:
-
-            WebDriverWait(
-                self.driver,
-                timeout
-            ).until(
-                lambda d: d.execute_script(
-                    "return document.readyState"
-                ) == "complete"
-            )
-
-            return True
-
-        except:
-            return False
-
-    # =====================================================
-    #               GET MESSAGE BOX
-    # =====================================================
-
-    def get_message_box(self):
-
-        selectors = [
-
-            "//div[@contenteditable='true']",
-
-            "//div[@role='textbox']",
-
-            "//p[@class='xdj266r x11i5rnm xat24cr x1mh8g0r']",
-
-            "//div[contains(@aria-label,'Message')]",
-
-            "//div[contains(@data-lexical-editor,'true')]"
-        ]
-
-        for selector in selectors:
-
-            try:
-
-                box = WebDriverWait(
-                    self.driver,
-                    8
-                ).until(
-                    EC.presence_of_element_located(
-                        (
-                            By.XPATH,
-                            selector
-                        )
-                    )
-                )
-
-                return box
-
-            except:
-                pass
-
-        return None
 
     # =====================================================
     #                   DRIVER SETUP
@@ -268,31 +189,6 @@ class FacebookMessenger:
             options.add_argument("--disable-notifications")
             options.add_argument("--disable-infobars")
 
-            # =================================================
-            #               STABILITY FIXES
-            # =================================================
-
-            options.add_argument("--disable-features=RendererCodeIntegrity")
-            options.add_argument("--disable-background-timer-throttling")
-            options.add_argument("--disable-backgrounding-occluded-windows")
-            options.add_argument("--disable-hang-monitor")
-            options.add_argument("--disable-sync")
-            options.add_argument("--disable-translate")
-
-            # =================================================
-            #      REMOVED CRASH-CAUSING FLAGS
-            # =================================================
-            #
-            # REMOVED:
-            # --single-process
-            # --renderer-process-limit=1
-            # --disable-features=site-per-process
-            #
-            # THESE WERE CAUSING:
-            # <unknown> CRASH ERRORS
-            #
-            # =================================================
-
             options.add_argument("--window-size=1280,720")
 
             # =================================================
@@ -315,7 +211,7 @@ class FacebookMessenger:
 
             self.wait = WebDriverWait(
                 self.driver,
-                60
+                40
             )
 
             success("CHROME DRIVER STARTED")
@@ -344,7 +240,7 @@ class FacebookMessenger:
                 "https://www.facebook.com"
             )
 
-            self.wait_for_page_ready(60)
+            time.sleep(5)
 
             cookies = self.cookie_str.split(";")
 
@@ -373,16 +269,7 @@ class FacebookMessenger:
                 "https://www.facebook.com/messages"
             )
 
-            self.wait_for_page_ready(60)
-
-            self.wait.until(
-                EC.presence_of_element_located(
-                    (
-                        By.TAG_NAME,
-                        "body"
-                    )
-                )
-            )
+            time.sleep(8)
 
             success("LOGIN SUCCESSFUL")
 
@@ -395,214 +282,44 @@ class FacebookMessenger:
             return False
 
     # =====================================================
-    #               OPEN CHAT SAFELY
-    # =====================================================
-
-    def open_chat(self):
-
-        try:
-
-            info("OPENING E2EE CHAT")
-
-            self.driver.get(
-                f"https://www.facebook.com/messages/e2ee/t/{self.target_uid}"
-            )
-
-            self.wait_for_page_ready(60)
-
-            box = self.get_message_box()
-
-            if not box:
-                raise Exception("MESSAGE BOX NOT FOUND")
-
-            self.wait.until(
-                lambda d: box.is_displayed()
-            )
-
-            success("CHAT FULLY LOADED")
-
-            return True
-
-        except Exception as e:
-
-            error(f"CHAT OPEN FAILED : {e}")
-
-            return False
-
-    # =====================================================
     #                   SEND MESSAGE
     # =====================================================
 
     def send_message(self, text):
 
-        retries = 3
-
-        for attempt in range(retries):
-
-            try:
-
-                # ============================================
-                # VERIFY TAB ALIVE
-                # ============================================
-
-                self.driver.execute_script(
-                    "return document.readyState"
-                )
-
-                # ============================================
-                # WAIT PAGE FULLY READY
-                # ============================================
-
-                self.wait_for_page_ready(60)
-
-                # ============================================
-                # GET MESSAGE BOX
-                # ============================================
-
-                box = self.get_message_box()
-
-                if not box:
-                    raise Exception("MESSAGE BOX NOT FOUND")
-
-                # ============================================
-                # WAIT UNTIL DISPLAYED
-                # ============================================
-
-                self.wait.until(
-                    lambda d: box.is_displayed()
-                )
-
-                # ============================================
-                # WAIT CLICKABLE
-                # ============================================
-
-                self.wait.until(
-                    EC.element_to_be_clickable(
-                        (
-                            By.XPATH,
-                            "//div[@contenteditable='true']"
-                        )
-                    )
-                )
-
-                # ============================================
-                # FOCUS BOX
-                # ============================================
-
-                self.driver.execute_script(
-                    "arguments[0].focus();",
-                    box
-                )
-
-                time.sleep(1)
-
-                # ============================================
-                # REMOVE STUCK STATE
-                # ============================================
-
-                box.send_keys(Keys.ESCAPE)
-
-                time.sleep(0.5)
-
-                final_msg = (
-                    f"{self.haters_name} {text}"
-                ).strip()
-
-                # ============================================
-                # TYPE MESSAGE SLOWLY
-                # ============================================
-
-                for char in final_msg:
-
-                    box.send_keys(char)
-
-                    time.sleep(0.02)
-
-                # ============================================
-                # WAIT BEFORE SEND
-                # ============================================
-
-                time.sleep(1)
-
-                # ============================================
-                # SEND MESSAGE
-                # ============================================
-
-                box.send_keys(Keys.ENTER)
-
-                # ============================================
-                # WAIT SEND COMPLETE
-                # ============================================
-
-                time.sleep(3)
-
-                # ============================================
-                # VERIFY STILL ALIVE
-                # ============================================
-
-                self.driver.execute_script(
-                    "return document.readyState"
-                )
-
-                return True
-
-            except (
-                TimeoutException,
-                StaleElementReferenceException,
-                WebDriverException,
-                Exception
-            ) as e:
-
-                error(
-                    f"SEND RETRY {attempt+1}/3 : {e}"
-                )
-
-                time.sleep(5)
-
-                try:
-
-                    self.driver.refresh()
-
-                    self.wait_for_page_ready(60)
-
-                except:
-                    pass
-
-        return False
-
-    # =====================================================
-    #               RECOVER FROM TAB CRASH
-    # =====================================================
-
-    def recover_driver(self):
-
         try:
 
-            error("TAB CRASH DETECTED")
+            box = self.wait.until(
+                EC.element_to_be_clickable(
+                    (
+                        By.XPATH,
+                        "//div[@contenteditable='true']"
+                    )
+                )
+            )
 
-            try:
-                self.driver.quit()
-            except:
-                pass
+            self.driver.execute_script(
+                "arguments[0].focus();",
+                box
+            )
 
-            info("RESTARTING DRIVER")
+            time.sleep(0.4)
 
-            if not self.setup_driver():
-                return False
+            final_msg = (
+                f"{self.haters_name} {text}"
+            ).strip()
 
-            if not self.login_with_cookies():
-                return False
+            box.send_keys(final_msg)
 
-            if not self.open_chat():
-                return False
+            time.sleep(0.5)
 
-            success("RECOVERY SUCCESSFUL")
+            box.send_keys(Keys.ENTER)
 
             return True
 
         except Exception as e:
 
-            error(f"RECOVERY FAILED : {e}")
+            error(f"SEND FAILED : {e}")
 
             return False
 
@@ -625,28 +342,19 @@ class FacebookMessenger:
         if not self.login_with_cookies():
             return
 
-        if not self.open_chat():
-            return
+        info("OPENING E2EE CHAT")
+
+        self.driver.get(
+            f"https://www.facebook.com/messages/e2ee/t/{self.target_uid}"
+        )
+
+        time.sleep(8)
 
         success("MESSAGE SENDING STARTED")
 
         count = 0
 
         while True:
-
-            try:
-
-                self.driver.execute_script(
-                    "return document.readyState"
-                )
-
-            except:
-
-                if not self.recover_driver():
-
-                    time.sleep(10)
-
-                    continue
 
             for msg in self.messages:
 
@@ -664,6 +372,10 @@ class FacebookMessenger:
 
                 status = "SUCCESS" if sent else "FAILED"
 
+                # =================================================
+                #               STABLE SINGLE-LINE LOG
+                # =================================================
+
                 log(
                     f"[MSG #{count}] "
                     f"[TARGET: {self.target_uid}] "
@@ -672,12 +384,16 @@ class FacebookMessenger:
                     f"[MESSAGE: {short_msg}]"
                 )
 
+                # =================================================
+                #                   HEARTBEAT
+                # =================================================
+
                 log(
                     f"[ALIVE] BOT RUNNING | "
                     f"MSG #{count} | "
                     f"{current_time}"
                 )
-
+                
                 log("───────────────────────────────────────────────────────────────")
 
                 time.sleep(self.delay)
