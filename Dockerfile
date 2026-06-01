@@ -1,20 +1,22 @@
 FROM python:3.11-slim
 
 # ==================================================
-# PYTHON SETTINGS
+# PYTHON & SYSTEM SETTINGS (UTF-8 SUPPORT)
 # ==================================================
-
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 # ==================================================
-# INSTALL CHROMIUM + DRIVER + REQUIRED LIBS
+# INSTALL CHROMIUM + DRIVER + EMOJI FONTS + LIBS
 # ==================================================
-
 RUN apt-get update && apt-get install -y \
     chromium \
     chromium-driver \
     fonts-liberation \
+    fonts-noto-color-emoji \
+    locales \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -42,38 +44,31 @@ RUN apt-get update && apt-get install -y \
 # ==================================================
 # CHROME PATHS
 # ==================================================
-
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 # ==================================================
 # WORK DIRECTORY
 # ==================================================
-
 WORKDIR /app
 
 # ==================================================
 # COPY FILES
 # ==================================================
-
 COPY . .
 
 # ==================================================
 # INSTALL PYTHON PACKAGES
 # ==================================================
-
 RUN pip install --upgrade pip
-
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ==================================================
 # PREVENT CHROME CRASH FILES
 # ==================================================
-
 RUN mkdir -p /tmp/chrome
 
 # ==================================================
 # START BOT
 # ==================================================
-
 CMD ["python", "-u", "main.py"]
